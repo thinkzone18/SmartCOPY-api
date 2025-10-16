@@ -1,0 +1,17 @@
+SmartCOPY Pro — Open Source Acknowledgements
+============================================
+
+SmartCOPY Pro uses open-source components under their respective licenses:
+
+- FastAPI (MIT)
+- Uvicorn (BSD)
+- Pydantic (MIT)
+- PyMongo (Apache 2.0)
+- Requests (Apache 2.0)
+- Python-dotenv (BSD)
+- Gunicorn (MIT)
+- PyInstaller (GPL with exception)
+
+These components are free and open-source, and remain the property of their respective authors.
+
+SmartCOPY Pro © 2025 ThinkZone. All rights reserved.

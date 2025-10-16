@@ -1,0 +1,46 @@
+SMARTCOPY  LICENSE AGREEMENT
+===============================
+
+Copyright © 2025 ThinkZone. All rights reserved.
+
+SmartCOPY  is proprietary software developed and distributed by ThinkZone.
+
+You are granted the right to:
+- Install and use SmartCOPY on a single computer per valid license key.
+- Evaluate the software for 7 days in trial mode.
+
+You are NOT permitted to:
+- Distribute or sell SmartCOPY  without authorization.
+- Share, leak, or publish license keys publicly.
+- Modify, reverse-engineer, or decompile the software.
+- Circumvent its licensing or security mechanisms.
+
+Each SmartCOPY  license is valid for 12 months from activation unless renewed.
+
+For license activation, support, or renewals, contact:
+admin@thinkzone18.com
+
+---
+
+OPEN-SOURCE ACKNOWLEDGEMENT
+---------------------------
+SmartCOPY  uses open-source components under their respective licenses:
+
+- FastAPI (MIT)
+- Uvicorn (BSD)
+- Pydantic (MIT)
+- PyMongo (Apache 2.0)
+- Requests (Apache 2.0)
+- Python-dotenv (BSD)
+- Gunicorn (MIT)
+- PyInstaller (GPL with exception)
+
+These components remain the property of their respective authors.
+
+---
+
+DISCLAIMER
+-----------
+The Software is provided "AS IS" without warranty of any kind, express or implied.
+In no event shall ThinkZone be liable for any damages arising from the use of this Software.
+
