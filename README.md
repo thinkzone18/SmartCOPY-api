@@ -1,0 +1,2 @@
+# SmartCOPY-api
+FastAPI backend
