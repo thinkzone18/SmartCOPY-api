@@ -11,4 +11,3 @@ pyinstaller
 tk
 email-validator
 redis
-
