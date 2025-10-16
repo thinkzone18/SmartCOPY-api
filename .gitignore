@@ -1,0 +1,18 @@
+# Ignore sensitive and unnecessary files
+.env
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.spec
+*.exe
+*.ico
+dist/
+build/
+LICENSE.txt
+EULA.txt
+OPEN_SOURCE_LICENSES.txt
+README.txt
+license_check.py
+update_check.py
