@@ -3,10 +3,11 @@ from fastapi.security.api_key import APIKeyHeader
 from datetime import datetime
 from .db import licenses
 from .utils import hash_key, make_expiry, is_expired
-from .models import ValidateRequest, ValidateResponse, CreateLicenseRequest
+from .models import ValidateRequest, ValidateResponse, CreateLicenseRequest, GumroadWebhook  # ✅ include GumroadWebhook here
 from .config import settings
 from .email_utils import send_license_email
 import hashlib, hmac, random, string
+
 
 router = APIRouter()
 
@@ -42,32 +43,35 @@ def admin_create(req: CreateLicenseRequest):
     return {"ok": True, "expiry": expiry}
 
 @router.post("/webhook/gumroad")
-async def gumroad_webhook(request: Request):
-    body = await request.body()
-    payload = await request.json()
-    secret = settings.GUMROAD_SECRET
-    if secret:
-        sig_header = request.headers.get("Gumroad-Signature", "")
-        computed = hashlib.sha256(secret.encode() + body).hexdigest()
-        if not hmac.compare_digest(computed, sig_header):
-            raise HTTPException(status_code=403, detail="Invalid signature")
-
-    purchaser_email = payload.get("email") or payload.get("purchaser_email")
+async def gumroad_webhook(payload: GumroadWebhook):
+    """
+    Triggered when a user purchases SmartCOPY on Gumroad.
+    Creates a 1-year license and emails it to the purchaser.
+    """
+    data = payload.dict(exclude_none=True)
+    purchaser_email = data.get("email") or data.get("purchaser_email")
     if not purchaser_email:
         raise HTTPException(status_code=400, detail="Email missing in payload")
 
-    def generate_license():
-        parts = [''.join(random.choices(string.ascii_uppercase + string.digits, k=4)) for _ in range(3)]
-        return f"SMARTCOPY-{'-'.join(parts)}"
+    # Generate random license key
+    chars = string.ascii_uppercase + string.digits
+    parts = [''.join(random.choices(chars, k=4)) for _ in range(3)]
+    license_key = f"SMARTCOPY-{'-'.join(parts)}"
 
-    key = generate_license()
+    # Save license in MongoDB
     licenses.insert_one({
-        "key_hash": hash_key(key),
+        "key_hash": hash_key(license_key),
         "expiry": make_expiry(365),
         "created_at": datetime.utcnow().isoformat(),
         "metadata": {"email": purchaser_email, "source": "gumroad"},
         "active": True
     })
 
-    send_license_email(purchaser_email, key)
-    return {"ok": True, "license_key": key}
+    # Send license email
+    try:
+        send_license_email(purchaser_email, license_key)
+    except Exception as e:
+        print("⚠️ Email sending failed:", e)
+
+    return {"ok": True, "license_key": license_key}
+

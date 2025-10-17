@@ -16,3 +16,5 @@ OPEN_SOURCE_LICENSES.txt
 README.txt
 license_check.py
 update_check.py
+dist/
+build/
