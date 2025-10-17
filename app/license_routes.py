@@ -33,11 +33,25 @@ def validate(req: ValidateRequest):
     return ValidateResponse(valid=True, expiry=expiry, message="License valid")
 
 
-# ✅ Admin: manually create a license
+
+# ✅ Admin: automatically generate a license key
 @router.post("/admin/create", dependencies=[Depends(require_admin)])
 def admin_create(req: CreateLicenseRequest):
-    key_hash = hash_key(req.license_key)
+    """
+    Admin endpoint to create a new license key automatically.
+    You only provide days_valid and optional metadata.
+    """
+
+    # 🔹 Generate random license key
+    chars = string.ascii_uppercase + string.digits
+    parts = [''.join(random.choices(chars, k=4)) for _ in range(3)]
+    license_key = f"SMARTCOPY-{'-'.join(parts)}"
+
+    # 🔹 Compute hash for DB
+    key_hash = hash_key(license_key)
     expiry = make_expiry(req.days_valid)
+
+    # 🔹 Save to MongoDB
     licenses.insert_one({
         "key_hash": key_hash,
         "expiry": expiry,
@@ -45,7 +59,12 @@ def admin_create(req: CreateLicenseRequest):
         "metadata": req.metadata or {},
         "active": True
     })
-    return {"ok": True, "expiry": expiry}
+
+    print(f"✅ License created automatically: {license_key}")
+
+    # 🔹 Return license key to admin
+    return {"ok": True, "license_key": license_key, "expiry": expiry}
+
 
 
 # ✅ Gumroad webhook - flexible version
@@ -53,22 +72,36 @@ def admin_create(req: CreateLicenseRequest):
 async def gumroad_webhook(request: Request, background_tasks: BackgroundTasks):
     """
     Triggered when a user purchases SmartCOPY on Gumroad.
-    Works with both form-data and JSON payloads.
+    Works with both test ping (form-data) and real purchases (JSON).
     """
 
     try:
-        # Gumroad test ping → form data
-        try:
-            data = await request.form()
-        except:
-            data = await request.json()
+        # Read raw body safely
+        raw_body = await request.body()
+        body_text = raw_body.decode("utf-8", errors="ignore").strip()
 
-        # Convert to dict (form returns FormData object)
-        data = dict(data)
-        print("🔔 Incoming Gumroad webhook:", data)
+        data = {}
 
+        # Try parsing as JSON first
+        if body_text.startswith("{"):
+            try:
+                data = await request.json()
+            except Exception as e:
+                print("⚠️ JSON parse failed, fallback to form:", e)
+
+        # If not JSON, try form
+        if not data:
+            try:
+                form_data = await request.form()
+                data = dict(form_data)
+            except Exception as e:
+                print("⚠️ Form parse failed:", e)
+
+        print("🔔 Incoming Gumroad webhook payload:", data)
+
+        # Extract buyer email
         purchaser_email = data.get("email") or data.get("purchaser_email")
-        product_name = data.get("product_name", "SmartCOPY Pro")
+        product_name = data.get("product_name", "SmartCOPY")
 
         if not purchaser_email:
             print("⚠️ Email missing in payload!")
@@ -84,16 +117,21 @@ async def gumroad_webhook(request: Request, background_tasks: BackgroundTasks):
             "key_hash": hash_key(license_key),
             "expiry": make_expiry(365),
             "created_at": datetime.utcnow().isoformat(),
-            "metadata": {"email": purchaser_email, "product": product_name, "source": "gumroad"},
+            "metadata": {
+                "email": purchaser_email,
+                "product": product_name,
+                "source": "gumroad"
+            },
             "active": True
         })
 
         # Send email asynchronously
         background_tasks.add_task(send_license_email, purchaser_email, license_key)
-        print(f"✅ License created for {purchaser_email}: {license_key}")
+        print(f"✅ License created and emailed to {purchaser_email}: {license_key}")
 
         return {"ok": True, "license_key": license_key}
 
     except Exception as e:
         print("❌ Webhook error:", e)
         raise HTTPException(status_code=500, detail=str(e))
+
