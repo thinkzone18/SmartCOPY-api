@@ -11,3 +11,4 @@ pyinstaller
 tk
 email-validator
 redis
+python-multipart
