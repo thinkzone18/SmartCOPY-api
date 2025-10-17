@@ -2,12 +2,11 @@ from fastapi import FastAPI
 from .license_routes import router
 
 app = FastAPI(title="SmartCOPY License API")
+
+# Include routes once (duplicate not needed)
 app.include_router(router)
 
-# Include your main routes
-app.include_router(router)
-
-# 👇 Add this route to confirm service status
+# Health check route for Render
 @app.get("/")
 def health_check():
     return {
