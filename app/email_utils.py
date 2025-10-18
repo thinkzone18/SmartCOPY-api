@@ -1,34 +1,33 @@
-import smtplib
-from email.message import EmailMessage
-from .config import settings
+import os
+import requests
 
-def send_license_email(recipient: str, license_key: str):
-    """Send license key email to customer."""
-    msg = EmailMessage()
-    msg["Subject"] = "Your SmartCOPY License Key"
-    msg["From"] = f"{settings.EMAIL_SENDER_NAME} <{settings.SMTP_USER}>"
-    msg["To"] = recipient
+def send_license_email(to_email: str, license_key: str):
+    api_key = os.getenv("BREVO_API_KEY")
+    from_email = os.getenv("FROM_EMAIL")
+    from_name = os.getenv("FROM_NAME", "SmartCOPY")
 
-    msg.set_content(f"""
-Hello,
+    url = "https://api.brevo.com/v3/smtp/email"
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "api-key": api_key
+    }
 
-Thank you for purchasing SmartCOPY!
+    payload = {
+        "sender": {"email": from_email, "name": from_name},
+        "to": [{"email": to_email}],
+        "subject": "Your SmartCOPY License Key",
+        "htmlContent": f"""
+            <p>Hello,</p>
+            <p>Thank you for purchasing <b>SmartCOPY Pro</b>.</p>
+            <p>Your license key is:</p>
+            <h2>{license_key}</h2>
+            <p>— Team ThinkZone</p>
+        """
+    }
 
-Your license key:
-    {license_key}
-
-License validity: 1 year from activation.
-
-If you need help on activating SmartCOPY, refer to the README or contact us at admin@thinkzone18.com.
-
-Best regards,
-ThinkZone Support Team
-""")
-
-    try:
-        with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT) as smtp:
-            smtp.login(settings.SMTP_USER, settings.SMTP_PASS)
-            smtp.send_message(msg)
-            print(f"✅ License email sent to {recipient}")
-    except Exception as e:
-        print(f"❌ Error sending email to {recipient}: {e}")
+    r = requests.post(url, headers=headers, json=payload, timeout=15)
+    if r.status_code in (200, 201, 202):
+        print(f"✅ Brevo email sent to {to_email}")
+    else:
+        print(f"⚠️ Brevo email failed: {r.status_code} → {r.text}")
