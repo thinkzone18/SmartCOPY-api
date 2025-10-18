@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from .licenses import router
+from .license_routes import router
 
 
 app = FastAPI(title="SmartCOPY License API")
